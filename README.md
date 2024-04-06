@@ -8,25 +8,33 @@ $ yarn install
 
 ```bash
 # development
-$ yarn run start
+yarn run start
+```
 
-# watch mode
-$ yarn run start:dev
+## Run migration:
+Create migration sql from entity class.
 
-# production mode
-$ yarn run start:prod
 ```
-Run migration:
+npx ts-node ./node_modules/typeorm/cli.js migration:generate src/db/migrations/create-table-users --d ./ormconfig.ts
 ```
-yarn run typeorm -d ormconfig.ts migration:run
+
+Run migration sql.
+
 ```
+npx ts-node ./node_modules/typeorm/cli.js migration:run --d ./ormconfig.ts
+```
+
+## Frontend:
+
+Create react app.
 
 ```
 yarn create react-app my-app
+```
 
-- connect redis cluster by CLI.
+Connect redis cluster by CLI.
 
 ```
-/usr/src/app $ redis-cli -c -h redis-node-5 -a bitnami
 docker-compose exec nestjs sh
+redis-cli -c -h redis-node-5 -a bitnami
 ```

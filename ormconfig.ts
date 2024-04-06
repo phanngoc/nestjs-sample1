@@ -13,8 +13,8 @@ const dataSource = new DataSource({
   synchronize: true,
   migrationsRun: true,
   dropSchema: false,
-  entities: ["../entities/**/*.entity{.ts,.js}"],
-  migrations: ["./migrations/**/*{.ts,.js}"],
+  entities: ["./src/entities/**/*.entity{.ts,.js}"],
+  migrations: ["./src/db/migrations/*{.ts,.js}"],
 });
 
 export default dataSource;
