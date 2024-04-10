@@ -8,9 +8,27 @@ import { UsersService } from './services/users.service';
 import { EventsModule } from './events/events.module';
 import { ServeStaticModule } from '@nestjs/serve-static';
 import { join } from 'path';
+import { JwtModule, JwtService } from '@nestjs/jwt';
+import { config } from 'dotenv';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 
+config();
+
+console.log('process.env.JWT_SECRET', process.env.JWT_SECRET);
 @Module({
   imports: [
+    ConfigModule,
+    JwtModule.registerAsync({
+      useFactory: async (configService: ConfigService) => ({
+        secretOrPrivateKey: configService.get('JWT_SECRET'),
+      }),
+    }),
+    // JwtModule.register({
+    //   global: true,
+    //   secret: 'THISISSECRETTTA', // This should be your secret key
+    //   signOptions: { expiresIn: '60s' },
+    //   // secretOrPrivateKey: process.env.JWT_SECRET,
+    // }),
     ServeStaticModule.forRoot({
       rootPath: join(__dirname, '../..', 'frontend', 'build'),
     }),
@@ -22,10 +40,10 @@ import { join } from 'path';
       username: 'nestjs',
       password: 'password',
       database: 'nestjs',
-      entities: [],
+      entities: [User],
       synchronize: true,
     }),
-    TypeOrmModule.forFeature([User, UsersService]),
+    TypeOrmModule.forFeature([User]),
     RedisModule.forRoot({
       type: 'cluster',
       nodes: [
@@ -62,6 +80,6 @@ import { join } from 'path';
     }),
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [AppService, UsersService, JwtService],
 })
 export class AppModule {}

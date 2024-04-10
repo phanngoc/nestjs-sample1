@@ -19,6 +19,10 @@ export class UsersService {
     return this.usersRepository.findOneBy({ id });
   }
 
+  findOneBy(condition): Promise<User | null> {
+    return this.usersRepository.findOneBy(condition);
+  }
+
   async remove(id: number): Promise<void> {
     await this.usersRepository.delete(id);
   }
