@@ -8,46 +8,63 @@ import {
     WsResponse,
   } from '@nestjs/websockets';
 import { Socket } from 'dgram';
-import { from, Observable } from 'rxjs';
-import { map } from 'rxjs/operators';
 import { Server } from 'socket.io';
-import { WSJwtAuthGuard } from '../guards/WSJwtAuthGuard';  
-import { UseInterceptors } from '@nestjs/common';
+import { WSJwtAuthGuard } from './WSJwtAuthGuard';  
+import { Injectable, UseInterceptors } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Message } from 'src/entities/message.entity';
+import { Thread } from 'src/entities/thread.entity';
+import { User } from 'src/entities/user.entity';
+import { Repository } from 'typeorm';
 
-  @WebSocketGateway({
-    cors: {
-      origin: '*',
-    },
-  })
-  export class EventsGateway implements OnGatewayDisconnect, OnGatewayConnection {
-    @WebSocketServer()
-    server: Server;
-    // how to use interceptor here?
-    @UseInterceptors(WSJwtAuthGuard)
-    async handleConnection(client: Socket) {
-      console.log('handleConnection');
-      // validate client when connecting
-      // if (!(await WSJwtAuthGuard.validate(client))) {
-      //   client.disconnect();
-      // }
-    }
+@WebSocketGateway({
+  cors: {
+    origin: '*',
+  },
+})
 
-    async handleDisconnect(client: Socket) {
-      client.disconnect();
-    }
+@Injectable()
+export class EventsGateway implements OnGatewayDisconnect, OnGatewayConnection {
+  @WebSocketServer()
+  server: Server;
+  constructor(
+    @InjectRepository(Message)
+    private readonly messageRepository: Repository<Message>,
+    @InjectRepository(Thread)
+    private readonly threadRepository: Repository<Thread>,
+    @InjectRepository(User)
+    private readonly userRepository: Repository<User>,
+    // private readonly wsJwtAuthGuard: WSJwtAuthGuard,
+  ) {}
 
-    @SubscribeMessage('events')
-    onEvent(@MessageBody() data: unknown): Observable<WsResponse<number>> {
-      const event = 'events';
-      const response = [1, 2, 3];
-
-      return from(response).pipe(
-        map(data => ({ event, data })),
-      );
-    }
-
-    @SubscribeMessage('identity')
-    async identity(@MessageBody() data: number): Promise<number> {
-      return data;
-    }
+  // how to use interceptor here?
+  // @UseInterceptors(this.wsJwtAuthGuard)
+  async handleConnection(client: any, ...args: any[]) {
+    console.log('Client connected');
+    client.userId = client.handshake.query.userId;
   }
+
+  async handleDisconnect(client: Socket) {
+    client.disconnect();
+  }
+
+  @SubscribeMessage('message')
+  async handleMessage(client: any, payload: any): Promise<void> {
+    console.log('handleMessage', payload, client.threadId)
+    const user = await this.userRepository.findOneBy({
+      id: 1,
+    });
+    const thread = await this.threadRepository.findOneBy({ uuid: client.threadId });
+    const message = await this.messageRepository.save({ content: payload, thread });
+    thread.messages.push(message);
+    await this.threadRepository.save(thread);
+    this.server.to(String(client.threadId)).emit('message', { content: message.content});
+  }
+
+  @SubscribeMessage('joinThread')
+  async joinThread(client: any, payload: any): Promise<void> {
+    console.log('Joining thread:', payload);
+    // Store the threadId in the client's session
+    client.threadId = payload;
+  }
+}

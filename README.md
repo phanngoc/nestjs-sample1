@@ -15,7 +15,7 @@ yarn run start
 Create migration sql from entity class.
 
 ```
-npx ts-node ./node_modules/typeorm/cli.js migration:generate src/db/migrations/create-table-users --d ./ormconfig.ts
+npx ts-node ./node_modules/typeorm/cli.js migration:generate src/db/migrations/create-table-threads --d ./ormconfig.ts
 ```
 
 Run migration sql.

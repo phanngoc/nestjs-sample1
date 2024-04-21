@@ -8,27 +8,28 @@ import { UsersService } from './services/users.service';
 import { EventsModule } from './events/events.module';
 import { ServeStaticModule } from '@nestjs/serve-static';
 import { join } from 'path';
-import { JwtModule, JwtService } from '@nestjs/jwt';
+import { JwtModule } from '@nestjs/jwt';
 import { config } from 'dotenv';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import { Message } from './entities/message.entity';
+import { MessageService } from './services/message.service';
+import { Thread } from './entities/thread.entity';
+import { ThreadService } from './services/thread.service';
 
 config();
-
-console.log('process.env.JWT_SECRET', process.env.JWT_SECRET);
 @Module({
   imports: [
-    ConfigModule,
+    ConfigModule.forRoot({
+      isGlobal: true,
+      envFilePath: '.env',
+    }),
     JwtModule.registerAsync({
+      global: true,
+      inject: [ConfigService],
       useFactory: async (configService: ConfigService) => ({
-        secretOrPrivateKey: configService.get('JWT_SECRET'),
+        secret: configService.get('JWT_SECRET'),
       }),
     }),
-    // JwtModule.register({
-    //   global: true,
-    //   secret: 'THISISSECRETTTA', // This should be your secret key
-    //   signOptions: { expiresIn: '60s' },
-    //   // secretOrPrivateKey: process.env.JWT_SECRET,
-    // }),
     ServeStaticModule.forRoot({
       rootPath: join(__dirname, '../..', 'frontend', 'build'),
     }),
@@ -40,10 +41,10 @@ console.log('process.env.JWT_SECRET', process.env.JWT_SECRET);
       username: 'nestjs',
       password: 'password',
       database: 'nestjs',
-      entities: [User],
+      entities: [User, Message, Thread],
       synchronize: true,
     }),
-    TypeOrmModule.forFeature([User]),
+    TypeOrmModule.forFeature([User, Message, Thread]),
     RedisModule.forRoot({
       type: 'cluster',
       nodes: [
@@ -80,6 +81,7 @@ console.log('process.env.JWT_SECRET', process.env.JWT_SECRET);
     }),
   ],
   controllers: [AppController],
-  providers: [AppService, UsersService, JwtService],
+  providers: [AppService, UsersService, MessageService, ThreadService],
+  exports: [TypeOrmModule, TypeOrmModule.forFeature([User, Message, Thread])],
 })
 export class AppModule {}
