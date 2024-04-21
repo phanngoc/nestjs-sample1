@@ -8,9 +8,28 @@ import { UsersService } from './services/users.service';
 import { EventsModule } from './events/events.module';
 import { ServeStaticModule } from '@nestjs/serve-static';
 import { join } from 'path';
+import { JwtModule } from '@nestjs/jwt';
+import { config } from 'dotenv';
+import { ConfigModule, ConfigService } from '@nestjs/config';
+import { Message } from './entities/message.entity';
+import { MessageService } from './services/message.service';
+import { Thread } from './entities/thread.entity';
+import { ThreadService } from './services/thread.service';
 
+config();
 @Module({
   imports: [
+    ConfigModule.forRoot({
+      isGlobal: true,
+      envFilePath: '.env',
+    }),
+    JwtModule.registerAsync({
+      global: true,
+      inject: [ConfigService],
+      useFactory: async (configService: ConfigService) => ({
+        secret: configService.get('JWT_SECRET'),
+      }),
+    }),
     ServeStaticModule.forRoot({
       rootPath: join(__dirname, '../..', 'frontend', 'build'),
     }),
@@ -22,10 +41,10 @@ import { join } from 'path';
       username: 'nestjs',
       password: 'password',
       database: 'nestjs',
-      entities: [],
+      entities: [User, Message, Thread],
       synchronize: true,
     }),
-    TypeOrmModule.forFeature([User, UsersService]),
+    TypeOrmModule.forFeature([User, Message, Thread]),
     RedisModule.forRoot({
       type: 'cluster',
       nodes: [
@@ -62,6 +81,7 @@ import { join } from 'path';
     }),
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [AppService, UsersService, MessageService, ThreadService],
+  exports: [TypeOrmModule, TypeOrmModule.forFeature([User, Message, Thread])],
 })
 export class AppModule {}
