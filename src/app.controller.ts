@@ -66,20 +66,6 @@ export class AppController {
     return user;
   }
 
-  @Post('/api/push-message')
-  async pushMessage(message: string) {
-    this.server.emit('message', message);
-  }
-
-  @Get('/connect-redis')
-  async connectRedis() {
-    let t = {a: 1, b: 2};    
-    await this.redis.set('key-tata', JSON.stringify(t));
-    const redisData = await this.redis.get("key-tata");
-
-    return 'access:' + redisData;
-  }
-
   @Get('/api/messages')
   async getMessages(@Query('threadId') threadId: number): Promise<Message[]> {
     console.log('getMessages:', threadId);

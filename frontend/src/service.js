@@ -86,7 +86,7 @@ export function connectSocket({ token, onConnect, onMessage }) {
     }
   });
 
-  socket.on('message', (data) => {
+  socket.on('messages', (data) => {
     console.log('Received message:', data);
 
     if (onMessage) {
@@ -120,22 +120,21 @@ export async function initDataLoadpage({dispatch, onConnect, onMessage}) {
   dispatch(setIsLogin(infoUser.isLogin));
   dispatch(setAccessToken(infoUser.token));
   dispatch(setUser(infoUser.user));
-
-
-  const threads = await loadThreads();
-  dispatch(setThreads(threads));
-  dispatch(setActiveThreadId(threads[0].id));
+  const threads = [];
   // if not login, set userId from local storage
   if (!infoUser.isLogin) {
     const userId = getOrSetFromLocalStorage('userId');
     // dispatch(setUserId(userId));
   } else {
+    const threads = await loadThreads();
+    dispatch(setThreads(threads));
+    dispatch(setActiveThreadId(threads[0].id));
     let socket = connectSocket({ token: infoUser.token, onConnect: onConnect, onMessage: onMessage });
     dispatch(setSocket(socket));
-  }
 
-  const responseMessages = await fetchMessages(threads[0].id);
-  dispatch(setMessages(responseMessages));
+    const responseMessages = await fetchMessages(threads[0].id);
+    dispatch(setMessages(responseMessages));
+  }
 }
 
 export async function postThread(threadId, userId) {

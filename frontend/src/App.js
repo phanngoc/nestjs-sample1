@@ -1,12 +1,10 @@
 import './App.scss';
-import socketIOClient from "socket.io-client";
 import React, { useEffect, useState, useReducer } from 'react';
 import { initDataLoadpage, postMessage } from './service';
 import Login from './components/Login';
 // import './styles.css';
 import {tasksReducer, initialState} from './reducers/tasksReducer';
-
-const ENDPOINT = "http://localhost:3000";
+import { receiveMessage } from './actions/login';
 
 function useOnceCall(cb, condition = true) {
   const isCalledRef = React.useRef(false);
@@ -21,7 +19,6 @@ function useOnceCall(cb, condition = true) {
 
 function App() {
   const [message, setMessage] = useState("");
-  const [messages, setMessages] = useState([]);
 
   const [data, dispatch] = useReducer(tasksReducer, initialState);
 
@@ -34,7 +31,7 @@ function App() {
 
   let onMessage = (data) => {
     console.log('Received message:', data);
-    setMessages(prevMessages => [...prevMessages, data]);
+    dispatch(receiveMessage(data));
   }
 
   useOnceCall(() => {
@@ -54,7 +51,6 @@ function App() {
       console.log('Sending message', message);
       // data.socket.emit('message', message);
       let messageCreated = await postMessage(message, data.activeThreadId);
-      dispatch({type: 'SET_MESSAGES', payload: [...data.messages, messageCreated]});
       console.log('Message created', messageCreated);
       setMessage("");
     }

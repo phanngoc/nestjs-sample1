@@ -18,6 +18,8 @@ import { ThreadService } from './services/thread.service';
 import { UserSeederService } from './seeders/UserSeederService';
 import { AuthService } from './services/auth.service';
 import { ThreadSeederService } from './seeders/ThreadSeederService';
+import { BullModule } from '@nestjs/bullmq';
+import { Redis } from 'ioredis';
 
 config();
 @Module({
@@ -48,39 +50,27 @@ config();
       synchronize: true,
     }),
     TypeOrmModule.forFeature([User, Message, Thread]),
-    RedisModule.forRoot({
-      type: 'cluster',
-      nodes: [
-          {
-              host: 'redis-node-0',
-              port: 6379
+    RedisModule.forRootAsync({
+      useFactory: (configService: ConfigService) => ({
+        type: 'cluster',
+        nodes: JSON.parse(configService.get<string>('REDIS_NODES')),
+        options: {
+          redisOptions: {
+            password: configService.get('REDIS_PASSWORD'),
           },
-          {
-              host: 'redis-node-1',
-              port: 6379
-          },
-          {
-              host: 'redis-node-2',
-              port: 6379
-          },
-          {
-              host: 'redis-node-3',
-              port: 6379
-          },
-          {
-              host: 'redis-node-4',
-              port: 6379
-          },
-          {
-              host: 'redis-node-5',
-              port: 6379
-          }
-      ],
-      options: {
-        redisOptions: {
-          password: 'bitnami'
-        }
-      }
+        },
+      }),
+      inject: [ConfigService],
+    }),
+    BullModule.forRootAsync({
+      inject: [ConfigService],
+      useFactory: async (configService: ConfigService) => ({
+        connection: {
+          host: configService.get('REDIS_HOST'),
+          port: configService.get('REDIS_PORT'),
+          password: configService.get('REDIS_PASSWORD'),
+        },
+      }),
     }),
   ],
   controllers: [AppController],

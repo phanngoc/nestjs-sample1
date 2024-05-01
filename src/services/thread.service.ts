@@ -35,8 +35,8 @@ export class ThreadService {
     let results = await this.threadRepository.createQueryBuilder('th')
       .leftJoinAndSelect('th.users', 'user')
       .where('user.id = :id', { id : user.id })
-      // .skip(skip)
-      // .take(limit)
+      .skip(skip)
+      .take(limit)
       .orderBy('th.updatedAt', 'DESC')
       .getMany();
 
@@ -53,13 +53,13 @@ export class ThreadService {
     let user = await this.userRepository.findOneBy({ identity: userId });
     let thread = await this.threadRepository.findOneBy({ uuid: threadUuid });
     console.log('createThread:user:', threadUuid, thread);
-    // if (!thread) {
-    //     const thread = new Thread();
-    //     thread.title = title;
-    //     thread.uuid = threadUuid;
-    //     thread.owner = user;
-    //     return await this.threadRepository.save(thread);
-    // }
+    if (!thread) {
+        const thread = new Thread();
+        thread.title = title;
+        thread.uuid = threadUuid;
+        thread.owner = user;
+        return await this.threadRepository.save(thread);
+    }
 
     return thread;
   }
