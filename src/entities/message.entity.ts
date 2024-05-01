@@ -3,7 +3,7 @@ import { DefaultEntity } from './default.entity';
 import { User } from './user.entity';
 import { Thread } from './thread.entity';
 
-@Entity()
+@Entity({name: 'messages'})
 export class Message extends DefaultEntity {
   @Column()
   content: string;

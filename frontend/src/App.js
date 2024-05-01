@@ -1,89 +1,94 @@
 import './App.scss';
 import socketIOClient from "socket.io-client";
-import React, { useEffect, useState } from 'react';
-import axios from 'axios';
-import { postThread, getOrSetFromLocalStorage } from './service';
+import React, { useEffect, useState, useReducer } from 'react';
+import { initDataLoadpage, postMessage } from './service';
+import Login from './components/Login';
+// import './styles.css';
+import {tasksReducer, initialState} from './reducers/tasksReducer';
 
 const ENDPOINT = "http://localhost:3000";
 
+function useOnceCall(cb, condition = true) {
+  const isCalledRef = React.useRef(false);
+
+  React.useEffect(() => {
+    if (condition && !isCalledRef.current) {
+      isCalledRef.current = true;
+      cb();
+    }
+  }, [cb, condition]);
+}
+
 function App() {
-  const [socket, setSocket] = useState(null);
   const [message, setMessage] = useState("");
   const [messages, setMessages] = useState([]);
-  const [threadId, setThreadId] = useState(null);
-  const [userId, setUserId] = useState(null);
-  const [isCreateThread, setIsCreateThread] = useState(false);
+
+  const [data, dispatch] = useReducer(tasksReducer, initialState);
+
+  let onConnect = () => {
+    console.log("Connected to server");
+    if (data.socket) {
+      data.socket.emit("events", { data: "Hello Server!" });
+    }
+  };
+
+  let onMessage = (data) => {
+    console.log('Received message:', data);
+    setMessages(prevMessages => [...prevMessages, data]);
+  }
+
+  useOnceCall(() => {
+    console.log('Init data load page');
+    initDataLoadpage({dispatch, onConnect, onMessage});
+  });
 
   useEffect(() => {
-    const socket = socketIOClient(ENDPOINT);
-    setSocket(socket);
-
-    socket.on("connect", () => {
-      console.log("Connected to server");
-      socket.emit("events", { data: "Hello Server!" });
-    });
-
-    socket.on('message', (data) => {
-      console.log('Received message:', data);
-      setMessages(prevMessages => [...prevMessages, data]);
-    });
-
-    // cleanup the effect
-    return () => socket.disconnect();
-  }, []);
-
-  useEffect(() => {
-    const threadId = getOrSetFromLocalStorage('threadId');
-    setThreadId(threadId);
-
-    const userId = getOrSetFromLocalStorage('userId');
-    setUserId(userId);
-    
-
-    if (!isCreateThread && threadId !== null && userId !== null) {
-      console.log('Posting thread:', threadId, userId);
-      const fetchData = async () => {
-        let thread = await postThread(threadId, userId);
-        console.log('Thread:', thread);
-        const responseMessages = await axios.get(ENDPOINT + '/api/messages',
-          {
-            params: {
-              threadId: threadId
-            }
-          });
-        console.log('responseMessages:', responseMessages);
-      }
-      fetchData();
-      setIsCreateThread(true);
+    if (data.socket) {
+      console.log('Socket:Joining thread');
+      data.socket.emit('joinThread', {threadId: data.activeThreadId});
     }
+  }, [data.socket]);
 
-    if (socket) {
-      console.log('Emit:Joining thread', threadId);
-      socket.emit('joinThread', threadId);
-    }
-  }, [socket]);
-
-  const sendMessage = () => {
-    if (socket) {
-      socket.emit('message', message);
+  const sendMessage = async () => {
+    if (data.socket) {
+      console.log('Sending message', message);
+      // data.socket.emit('message', message);
+      let messageCreated = await postMessage(message, data.activeThreadId);
+      dispatch({type: 'SET_MESSAGES', payload: [...data.messages, messageCreated]});
+      console.log('Message created', messageCreated);
       setMessage("");
     }
   };
 
   return (
     <div className="App">
-      <div className="wrap-messages">
-        <div className='messages'>
-          {messages.map((msg, index) => (
-            <div key={index}>{msg}</div>
-          ))}
+      <div id="sidebar">
+        <div id="main-threads">
+          <div className="threads">
+            <h3>Threads</h3>
+            <ul>
+              {data.threads.map((thread, index) => (
+                <li key={index}>{thread.title}</li>
+              ))}
+            </ul>
+          </div>
         </div>
       </div>
-      <div id="wrap-input">
-        <div id="wrap-message-control">
-          <input value={message} onChange={(e) => setMessage(e.target.value)} name="input-message" />
+      <div id="main-content">
+        {!data.isLogin && <Login dispatch={dispatch} />}
+        <div className="wrap-messages">
+          <div className='messages'>
+            {data.messages.map((message, index) => (
+              <div key={index} className='message'>{message.content}</div>
+            ))}
+          </div>
         </div>
-        <button onClick={sendMessage} id="btn-send">Send</button>
+        <div id="wrap-input">
+          <div id="wrap-message-control">
+            <input value={message} onChange={(e) => setMessage(e.target.value)} name="input-message" />
+          </div>
+          <button onClick={sendMessage} id="btn-send">Send</button>
+        </div>
       </div>
     </div>
   );
