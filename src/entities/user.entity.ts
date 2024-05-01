@@ -1,8 +1,8 @@
-import * as bcrypt from 'bcrypt';
 import { BeforeInsert, Column, Entity, ManyToMany, OneToMany } from 'typeorm';
 import { DefaultEntity } from './default.entity';
 import { Message } from './message.entity';
 import { Thread } from './thread.entity';
+import { hashSync } from 'bcryptjs';
 
 @Entity('users')
 export class User extends DefaultEntity {
@@ -22,7 +22,7 @@ export class User extends DefaultEntity {
   @BeforeInsert()
   async hashPassword() {
     if (this.password) {
-      this.password = await bcrypt.hash(this.password, 10);
+      this.password = hashSync(this.password, 10);
     }
   }
 

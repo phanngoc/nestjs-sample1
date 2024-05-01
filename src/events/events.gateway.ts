@@ -40,7 +40,7 @@ export class EventsGateway implements OnGatewayDisconnect, OnGatewayConnection {
   // how to use interceptor here?
   // @UseInterceptors(this.wsJwtAuthGuard)
   async handleConnection(client: any, ...args: any[]) {
-    console.log('Client connected');
+    console.log('Client connected', client.handshake.query);
     client.userId = client.handshake.query.userId;
   }
 
@@ -52,19 +52,23 @@ export class EventsGateway implements OnGatewayDisconnect, OnGatewayConnection {
   async handleMessage(client: any, payload: any): Promise<void> {
     console.log('handleMessage', payload, client.threadId)
     const user = await this.userRepository.findOneBy({
-      id: 1,
+      identity: client.userId,
     });
     const thread = await this.threadRepository.findOneBy({ uuid: client.threadId });
-    const message = await this.messageRepository.save({ content: payload, thread });
-    thread.messages.push(message);
-    await this.threadRepository.save(thread);
-    this.server.to(String(client.threadId)).emit('message', { content: message.content});
+    console.log('thread', thread);
+    if (thread && user) {
+      const message = await this.messageRepository.save({ content: payload, thread, user: user });
+      thread.messages.push(message);
+      await this.threadRepository.save(thread);
+      this.server.to(String(client.threadId)).emit('message', { content: message.content});
+    }
   }
 
   @SubscribeMessage('joinThread')
   async joinThread(client: any, payload: any): Promise<void> {
     console.log('Joining thread:', payload);
     // Store the threadId in the client's session
-    client.threadId = payload;
+    client.threadId = payload.threadId;
+    client.userId = payload.userId;
   }
 }

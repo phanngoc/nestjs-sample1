@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, OnModuleInit } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { RedisModule } from '@nestjs-modules/ioredis';
@@ -15,6 +15,9 @@ import { Message } from './entities/message.entity';
 import { MessageService } from './services/message.service';
 import { Thread } from './entities/thread.entity';
 import { ThreadService } from './services/thread.service';
+import { UserSeederService } from './seeders/UserSeederService';
+import { AuthService } from './services/auth.service';
+import { ThreadSeederService } from './seeders/ThreadSeederService';
 
 config();
 @Module({
@@ -81,7 +84,19 @@ config();
     }),
   ],
   controllers: [AppController],
-  providers: [AppService, UsersService, MessageService, ThreadService],
+  providers: [AppService, UsersService, MessageService, ThreadService, AuthService, UserSeederService, ThreadSeederService],
   exports: [TypeOrmModule, TypeOrmModule.forFeature([User, Message, Thread])],
 })
-export class AppModule {}
+
+export class AppModule implements OnModuleInit {
+  constructor(
+    private readonly userSeederService: UserSeederService,
+    private readonly threadSeederService: ThreadSeederService
+  ) {}
+
+  async onModuleInit() {
+    await this.userSeederService.seed();
+    await this.threadSeederService.seed();
+  }
+}
+

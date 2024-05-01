@@ -20,19 +20,18 @@ export class MessageService {
     return this.messageRepository.find();
   }
 
-  async getMessagesByThreadId(threadId: string): Promise<Message[]> {
-    let thread = await this.threadRepository.findOne({
-      where: {
-        uuid: threadId
-      }
+  async getMessagesByThreadId(threadId: number): Promise<Message[]> {
+    let thread = await this.threadRepository.findOneBy({
+      id: threadId
     });
 
     if (!thread) {
       return [];
     }
-    return this.messageRepository.find({
+    console.log('getMessagesByThreadId', threadId, thread);
+    return await this.messageRepository.find({
       where: {
-        thread: thread
+        thread: {id: threadId}
       },
       order: {
         createdAt: 'DESC' // 'DESC' for descending order
@@ -40,39 +39,16 @@ export class MessageService {
     });
   }
 
-  async sendMessage(threadId: string, text: string): Promise<Message | null> {
-    console.log('sendMessage', threadId, text, this.userRepository);
+  async sendMessage(threadId: number, userId: number, content: string): Promise<Message | null> {
+    console.log('sendMessage', threadId, userId, content);
     try {
-      let user = await this.userRepository.findOne({
-        where: {
-          id: 1,
-        },  
-      });
-      if (!user) {
-        user = new User();
-        user.identity = threadId;
-        await this.userRepository.save(user);
-      }
-
-      let thread = await this.threadRepository.findOne(
-        {
-          where: {
-            uuid: threadId
-          },
-        }
-      );
-      if (!thread) {
-        thread = new Thread();
-        thread.uuid = threadId;
-        await this.threadRepository.save(thread);
-      } else if (!thread.users.find(u => u.id === user.id)) {
-        thread.users.push(user);
-        await this.threadRepository.save(thread);
-      }
+      let user = await this.userRepository.findOneBy({ id: userId });
+      let thread = await this.threadRepository.findOneBy({ id: threadId });
 
       const message = new Message();
-      message.content = text;
+      message.content = content;
       message.thread = thread;
+      message.user = user;
 
       return await this.messageRepository.save(message);
     } catch (error) {
