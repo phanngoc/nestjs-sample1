@@ -4,6 +4,7 @@ import { Message } from '../entities/message.entity';
 import { Repository } from 'typeorm';
 import { Thread } from 'src/entities/thread.entity';
 import { User } from 'src/entities/user.entity';
+import { EventsGateway } from 'src/events/events.gateway';
 
 @Injectable()
 export class MessageService {
@@ -14,6 +15,8 @@ export class MessageService {
     private readonly threadRepository: Repository<Thread>,
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
+    // server
+    private eventGateway: EventsGateway,
   ) {}
 
   async getAllMessages(): Promise<Message[]> {
@@ -34,7 +37,7 @@ export class MessageService {
         thread: {id: threadId}
       },
       order: {
-        createdAt: 'DESC' // 'DESC' for descending order
+        createdAt: 'ASC' // 'DESC' for descending order
       }
     });
   }
@@ -50,7 +53,10 @@ export class MessageService {
       message.thread = thread;
       message.user = user;
 
-      return await this.messageRepository.save(message);
+      let resultSaved = await this.messageRepository.save(message);
+      if (resultSaved) {
+        this.eventGateway.pushMessageToThread(message, threadId);
+      }
     } catch (error) {
       // Handle error
       console.error('Error sending message:', error);

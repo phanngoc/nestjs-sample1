@@ -1,6 +1,6 @@
 // tasksReducer.js
 import { SET_LOGIN, SET_ACCESS_TOKEN, SET_USER, SET_THREADS, 
-    SET_ACTIVE_THREAD, SET_MESSAGES, SET_SOCKET } from '../actions/login';
+    SET_ACTIVE_THREAD, SET_MESSAGES, SET_SOCKET, RECEIVE_MESSAGE } from '../actions/login';
 
 export const initialState = {
   isLogin: false,
@@ -26,6 +26,8 @@ export function tasksReducer(state = initialState, action) {
       return {...state, activeThreadId: action.payload};
     case SET_MESSAGES:
       return {...state, messages: action.payload};
+    case RECEIVE_MESSAGE:
+      return {...state, messages: [...state.messages, action.payload]};
     case SET_SOCKET:
       return {...state, socket: action.payload};
     default:

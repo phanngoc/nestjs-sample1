@@ -7,6 +7,7 @@ export const SET_ACTIVE_THREAD = 'SET_ACTIVE_THREAD';
 export const SET_MESSAGES = 'SET_MESSAGES';
 // set socket
 export const SET_SOCKET = 'SET_SOCKET';
+export const RECEIVE_MESSAGE = 'RECEIVE_MESSAGE';
 
 const setIsLogin = (item) => {
   return { type: SET_LOGIN, payload: item };
@@ -42,5 +43,10 @@ const setSocket = (socket) => {
   return { type: SET_SOCKET, payload: socket };
 };
 
+// RECEIVE_MESSAGE
+const receiveMessage = (message) => {
+  return { type: RECEIVE_MESSAGE, payload: message };
+};
+
 export { setIsLogin, setAccessToken, setUser, setThreads, setActiveThreadId, setMessages,
-  setSocket};
+  setSocket, receiveMessage};

@@ -10,5 +10,6 @@ import { WSJwtAuthGuard } from './WSJwtAuthGuard';
 @Module({
   imports: [TypeOrmModule, TypeOrmModule.forFeature([User, Message, Thread])],
   providers: [EventsGateway, WSJwtAuthGuard],
+  exports: [EventsGateway],
 })
 export class EventsModule {}
